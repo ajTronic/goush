@@ -16,6 +16,7 @@ Go to your config folder
 cd ~/.config
 ```
 
+Go up 1 directory
 ```bash
 ..
 ```
