@@ -1,10 +1,11 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-void error(char* msg) {
+void error(char *msg) {
   printf("\033[32mError: %s\033[0m", msg);
   exit(0);
 }
@@ -12,34 +13,39 @@ void error(char* msg) {
 // returns the arg list for a command
 char **split_command(char command[]) {
   char **result = malloc(sizeof(char *));
-  result[0] = &command[0]; // result[0] -> address of command[0]
+  int total = 1; // total # of sub-commands
+  bool is_in_str = false;
 
-  // total # of sub-commands
-  int total = 1;
+  result[0] = &command[0]; // result[0] -> address of command[0]
 
   // loop over the command array
   for (size_t i = 0; i < (sizeof(&command) / sizeof(char)); i++) {
-    if (command[i] == ' ') {
+    if (command[i] == ' ' && !is_in_str) {
       command[i] = 0; // set to null-terminator
-      
-      if (command[i+1] == '"') continue;
+
+      if (command[i + 1] == '"') // don't set new char * to "
+        continue;
 
       result = realloc(result, sizeof(char *) * (++total)); // add 1 char * to result
       if (result == NULL)
-        error("realloc failed"); // realloc failed
-      result[total-1] = &command[i+1]; // set new char * to next token
+        error("realloc failed");           // realloc failed
+      result[total - 1] = &command[i + 1]; // set new char * to next token
     } else if (command[i] == '"') {
+      is_in_str = !is_in_str;
+
       command[i] = 0;
-      printf("command[i] = %c\n", command[i]);
 
-      if (command[i+1] == 0 || command[i+1] == ' ') continue;
+      if (command[i + 1] == 0) {
+        printf("asdf?");
+        break;
+      }
 
-      result = realloc(result, sizeof(char *) * (++total)); // add 1 char * to result
-      if (result == NULL)
-        error("realloc failed"); // realloc failed
-      result[total-1] = &command[i+1]; // set new char * to next token
-      
-      while (command[i+1] != '"') i++; // skip until next "
+      if (is_in_str) {
+        result = realloc(result, sizeof(char *) * (++total)); // add 1 char * to result
+        if (result == NULL)
+          error("realloc failed");           // realloc failed
+        result[total - 1] = &command[i + 1]; // set new char * to next token
+      }
     }
   }
 
