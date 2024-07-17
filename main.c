@@ -5,64 +5,39 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-void error(char *msg) {
-  printf("\033[32mError: %s\033[0m", msg);
-  exit(0);
-}
-
-// returns the arg list for a command
-char **split_command(char command[]) {
-  char **result = malloc(sizeof(char *));
+static char **split_command(char command[]) {
+  char **result = malloc(sizeof(char *) * 256);
   int total = 1; // total # of sub-commands
   bool is_in_str = false;
+  size_t command_len = strlen(command);
 
-  result[0] = &command[0]; // result[0] -> address of command[0]
+  result[0] = &command[0]; // result[0] -> address of command[0] until null terminator
 
   // loop over the command array
-  for (size_t i = 0; i < (sizeof(&command) / sizeof(char)); i++) {
+  for (size_t i = 0; i < command_len; i++) {
     if (command[i] == ' ' && !is_in_str) {
       command[i] = 0; // set to null-terminator
 
       if (command[i + 1] == '"') // don't set new char * to "
         continue;
 
-      result = realloc(result, sizeof(char *) * (++total)); // add 1 char * to result
-      if (result == NULL)
-        error("realloc failed");           // realloc failed
-      result[total - 1] = &command[i + 1]; // set new char * to next token
+      result[++total - 1] = &command[i + 1]; // set new char * to next token
     } else if (command[i] == '"') {
       is_in_str = !is_in_str;
 
-      command[i] = 0;
+      command[i] = 0; // replace with null terminator
 
-      if (command[i + 1] == 0) {
-        printf("asdf?");
-        break;
-      }
-
-      if (is_in_str) {
-        result = realloc(result, sizeof(char *) * (++total)); // add 1 char * to result
-        if (result == NULL)
-          error("realloc failed");           // realloc failed
-        result[total - 1] = &command[i + 1]; // set new char * to next token
-      }
+      if (is_in_str) 
+        result[++total - 1] = &command[i + 1]; // set new char * to next token
     }
   }
 
-  for (size_t i = 0; i < total; i++) {
-    printf("'%s'\n", result[i]);
-  }
-
-  // append null-terminator
-  result = realloc(result, sizeof(char *) * (total + 1));
-  if (result == NULL)
-    error("realloc failed"); // realloc failed
-  result[total] = 0;
+  result[total] = 0; // append null-terminator
 
   return result;
 }
 
-void exec_command(char **arg_list) {
+static void exec_command(char **arg_list) {
   char *path = arg_list[0];
 
   // handle builtin commands
@@ -104,7 +79,7 @@ void exec_command(char **arg_list) {
   }
 }
 
-int main() {
+int main(void) {
   while (1) {
     // print prompt
     printf("\033[0m\033[0;33m>\033[0m ");
@@ -120,6 +95,4 @@ int main() {
 
     free(arg_list);
   }
-
-  return 0;
 }
