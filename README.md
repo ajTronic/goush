@@ -5,6 +5,10 @@ This is a basic shell written in C.
 Similar to bash. However, it lacks some features such as piping (using |)
 
 _e.g._
+Print 'hi dad'
+```bash
+echo 'hi dad'
+```
 
 List all
 ```bash
