@@ -4,27 +4,54 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+void error(char* msg) {
+  printf("\033[32mError: %s\033[0m", msg);
+  exit(0);
+}
+
 // returns the arg list for a command
 char **split_command(char command[]) {
-  char **result = NULL;
-  char *curr = strtok(command, " "); // pointer to current token
-  int num_spaces = 0;
+  char **result = malloc(sizeof(char *));
+  result[0] = &command[0]; // result[0] -> address of command[0]
 
-  while (curr) { // while curr != NULL
-    // add 1 char to result
-    result = realloc(result, sizeof(char *) * (++num_spaces));
-    if (result == NULL)
-      exit(0); // realoc failed
+  // total # of sub-commands
+  int total = 1;
 
-    result[num_spaces - 1] = curr; // set that char to the current token
-    curr = strtok(NULL, " ");      // get next token
+  // loop over the command array
+  for (size_t i = 0; i < (sizeof(&command) / sizeof(char)); i++) {
+    if (command[i] == ' ') {
+      command[i] = 0; // set to null-terminator
+      
+      if (command[i+1] == '"') continue;
+
+      result = realloc(result, sizeof(char *) * (++total)); // add 1 char * to result
+      if (result == NULL)
+        error("realloc failed"); // realloc failed
+      result[total-1] = &command[i+1]; // set new char * to next token
+    } else if (command[i] == '"') {
+      command[i] = 0;
+      printf("command[i] = %c\n", command[i]);
+
+      if (command[i+1] == 0 || command[i+1] == ' ') continue;
+
+      result = realloc(result, sizeof(char *) * (++total)); // add 1 char * to result
+      if (result == NULL)
+        error("realloc failed"); // realloc failed
+      result[total-1] = &command[i+1]; // set new char * to next token
+      
+      while (command[i+1] != '"') i++; // skip until next "
+    }
+  }
+
+  for (size_t i = 0; i < total; i++) {
+    printf("'%s'\n", result[i]);
   }
 
   // append null-terminator
-  result = realloc(result, sizeof(char *) * (num_spaces + 1));
+  result = realloc(result, sizeof(char *) * (total + 1));
   if (result == NULL)
-    exit(0); // realloc failed
-  result[num_spaces] = 0;
+    error("realloc failed"); // realloc failed
+  result[total] = 0;
 
   return result;
 }
@@ -63,7 +90,7 @@ void exec_command(char **arg_list) {
       execvp(path, arg_list);
 
       // this means execvp failed, as it did not change the process
-      printf("unknown command\n");
+      printf("unknown command: %s\n", arg_list[0]);
 
       // kill child process
       exit(0);
